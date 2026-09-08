@@ -81,7 +81,11 @@ function LoginPage({ setToken }) {
           <button type="submit" className="auth-btn">
             Login
           </button>
-          <button type="submit" className="auth-btn-guest">
+          <button
+            type="button"
+            className="auth-btn-guest"
+            onClick={handleGuestLogin}
+          >
             Continue as Guest
           </button>
         </form>
