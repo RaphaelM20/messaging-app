@@ -37,6 +37,7 @@ function LoginPage({ setToken }) {
   };
 
   const handleGuestLogin = async () => {
+    console.log("attempting guest login...");
     const response = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
       method: "POST",
       headers: {
@@ -81,14 +82,14 @@ function LoginPage({ setToken }) {
           <button type="submit" className="auth-btn">
             Login
           </button>
-          <button
-            type="button"
-            className="auth-btn-guest"
-            onClick={handleGuestLogin}
-          >
-            Continue as Guest
-          </button>
         </form>
+        <button
+          type="button"
+          className="auth-btn-guest"
+          onClick={handleGuestLogin}
+        >
+          Continue as Guest
+        </button>
       </div>
     </div>
   );
