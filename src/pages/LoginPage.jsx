@@ -36,6 +36,19 @@ function LoginPage({ setToken }) {
     }
   };
 
+  const handleGuestLogin = async () => {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username: "guest", password: "guest123" }),
+    });
+    const data = await response.json();
+    setToken(data.token);
+    navigate("/");
+  };
+
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -67,6 +80,9 @@ function LoginPage({ setToken }) {
           </div>
           <button type="submit" className="auth-btn">
             Login
+          </button>
+          <button type="submit" className="auth-btn-guest">
+            Continue as Guest
           </button>
         </form>
       </div>

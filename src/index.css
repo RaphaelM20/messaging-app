@@ -221,6 +221,23 @@ body {
   background: #4752c4;
 }
 
+.auth-btn-guest {
+  padding: 0.6rem;
+  background: #5865f2;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.15s;
+}
+
+.auth-btn-guest:hover {
+  background: #4752c4;
+}
+
 /* CHAT CARDS */
 .chat-card {
   display: flex;
