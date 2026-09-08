@@ -37,7 +37,6 @@ function LoginPage({ setToken }) {
   };
 
   const handleGuestLogin = async () => {
-    console.log("attempting guest login...");
     const response = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
       method: "POST",
       headers: {
@@ -46,6 +45,8 @@ function LoginPage({ setToken }) {
       body: JSON.stringify({ username: "guest", password: "guest123" }),
     });
     const data = await response.json();
+    console.log("token:", data.token);
+    localStorage.setItem("authToken", data.token);
     setToken(data.token);
     navigate("/");
   };
