@@ -2,12 +2,13 @@
 
 A full-stack Discord-inspired messaging app. [Live Demo](https://raphs-messaging-app.netlify.app/login) | [API Repo](https://github.com/RaphaelM20/messaging-app-api)
 
-![Messaging App Preview](https://res.cloudinary.com/zrc0epiv/image/upload/v1788895682/messaging-app-preview_vvjwop.jpg)
+![Sending a message and receiving a reply](docs/demo.png)
 
 ## Features
 
 - JWT authentication (sign up, log in, guest access)
-- Send and receive messages in real time
+- Send and receive messages; new ones appear automatically (polled every 4 seconds)
+- Delete your own messages
 - Create group or direct message conversations
 - Friend requests (send, accept, deny)
 - User profiles with profile picture
@@ -37,8 +38,14 @@ npm run dev
 # Frontend
 cd messaging-app
 npm install
-# create .env with VITE_API_URL=http://localhost:3000
+cp .env.example .env   # sets VITE_API_URL=http://localhost:3000
 npm run dev
 ```
 
-Visit `http://localhost:5173` and use **Continue as Guest** to explore.
+Visit `http://localhost:5173` and sign up to explore. **Continue as Guest** needs a `guest` account (password `guest123`) in your local database; create it through the sign-up form if you want the button to work locally.
+
+## Screenshots
+
+| Conversations | Chat |
+| --- | --- |
+| ![Conversation list](docs/home.png) | ![Chat view](docs/conversation.png) |
