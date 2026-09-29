@@ -1,6 +1,6 @@
-const TIME_FORMAT = { hour: "2-digit", minute: "2-digit" };
+const TIME_FORMAT = { hour: "numeric", minute: "2-digit" };
 
-// "03:15 PM" today, "Yesterday 03:15 PM", otherwise the locale date.
+// "3:15 PM" today, "Yesterday 3:15 PM", otherwise the locale date.
 export function formatTime(value) {
   if (!value) return "";
   const date = new Date(value);
