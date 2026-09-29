@@ -1,8 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
 import { apiFetch, isAbortError } from "../lib/api";
-import { formatTime } from "../lib/formatTime";
+import MessageComposer from "../components/conversation/MessageComposer";
+import MessageList from "../components/conversation/MessageList";
+import Alert from "../components/ui/Alert";
+import Avatar from "../components/ui/Avatar";
+import EmptyState from "../components/ui/EmptyState";
+import SkeletonList from "../components/ui/SkeletonList";
 
 // The API has no push channel, so new messages are picked up by polling.
 const POLL_INTERVAL_MS = 4000;
@@ -12,9 +17,6 @@ function Conversation({ conversationId }) {
   const [conversation, setConversation] = useState(null);
   // "loading" | "ready" | "not-found" | "error"
   const [status, setStatus] = useState("loading");
-  const [draft, setDraft] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState("");
   // null until known, so the input never flashes enabled for an ex-friend.
   const [isFriends, setIsFriends] = useState(null);
   const latestRequestId = useRef(0);
@@ -63,16 +65,14 @@ function Conversation({ conversationId }) {
     };
   }, [refresh]);
 
-  const otherMembers = (conversation?.members ?? []).filter(
-    (m) => m.id !== currentUserId,
-  );
+  const members = conversation?.members ?? [];
+  const otherMembers = members.filter((m) => m.id !== currentUserId);
   const otherNames = otherMembers.map((m) => m.name).join(", ");
   // Only one-to-one chats are gated on friendship; groups are always open.
   const directPartnerId =
-    otherMembers.length === 1 && conversation?.members.length === 2
+    otherMembers.length === 1 && members.length === 2
       ? otherMembers[0].id
       : null;
-  const canMessage = directPartnerId === null || isFriends === true;
 
   useEffect(() => {
     if (directPartnerId === null) return;
@@ -93,98 +93,81 @@ function Conversation({ conversationId }) {
     return () => controller.abort();
   }, [directPartnerId]);
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    const content = draft.trim();
-    if (!content || sending) return;
-
-    setSending(true);
-    setSendError("");
-    try {
-      await apiFetch(`/conversations/${conversationId}/messages`, {
-        method: "POST",
-        body: { content },
-      });
-    } catch {
-      setSendError("Your message couldn't be sent. Please try again.");
-      setSending(false);
-      return;
-    }
-    setDraft("");
-    setSending(false);
+  const sendMessage = async (content) => {
+    await apiFetch(`/conversations/${conversationId}/messages`, {
+      method: "POST",
+      body: { content },
+    });
     // The next poll will retry if this refresh fails.
     refresh().catch(() => {});
   };
 
   if (status === "loading") {
-    return <div className="conversation-container">Loading conversation…</div>;
-  }
-
-  if (status === "not-found" || status === "error") {
     return (
-      <div className="conversation-container">
-        <p className="auth-error" role="alert">
-          {status === "not-found"
-            ? "This conversation doesn't exist."
-            : "Couldn't load this conversation. Please refresh to try again."}
-        </p>
+      <div className="conversation">
+        <div className="conversation__status">
+          <SkeletonList label="Loading conversation" rows={5} />
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="conversation-container">
-      <div className="chat-header">{otherNames}</div>
-      {conversation.messages.map((message) => (
-        <div key={message.id} className="convo-message">
-          <img src={message.sender?.picture} alt="" />
-          <div className="message-body">
-            <div className="message-header">
-              <p className="message-name">{message.sender?.name}</p>
-              <p className="message-time">{formatTime(message.createdAt)}</p>
-            </div>
-            <p className="message-content">{message.content}</p>
-          </div>
+  if (status === "not-found" || status === "error") {
+    return (
+      <div className="conversation">
+        <div className="conversation__status">
+          {status === "not-found" ? (
+            <EmptyState
+              icon="message"
+              title="Conversation not found"
+              action={
+                <Link to="/" className="button button--primary">
+                  Back to conversations
+                </Link>
+              }
+            >
+              It may have been removed, or the link is wrong.
+            </EmptyState>
+          ) : (
+            <Alert>
+              Couldn't load this conversation. Please refresh to try again.
+            </Alert>
+          )}
         </div>
-      ))}
+      </div>
+    );
+  }
 
-      {sendError && (
-        <p className="auth-error" role="alert">
-          {sendError}
-        </p>
-      )}
+  let disabledReason = null;
+  if (directPartnerId !== null && isFriends === null) {
+    disabledReason = "Loading…";
+  } else if (directPartnerId !== null && !isFriends) {
+    disabledReason = "You are no longer friends with this person.";
+  }
 
-      {canMessage ? (
-        <form onSubmit={sendMessage}>
-          <input
-            id="message-input"
-            type="text"
-            autoComplete="off"
-            aria-label="Message"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={otherNames ? `Message ${otherNames}` : "Message"}
-          />
-          <button type="submit" disabled={sending || !draft.trim()}>
-            Send
-          </button>
-        </form>
-      ) : (
-        <form>
-          <input
-            id="message-input"
-            type="text"
-            aria-label="Message"
-            disabled
-            placeholder={
-              isFriends === false
-                ? "You are no longer friends with this person."
-                : "Loading…"
-            }
-          />
-        </form>
-      )}
-    </div>
+  const title = otherNames || "Just you";
+
+  return (
+    <section className="conversation" aria-labelledby="conversation-title">
+      <header className="conversation__header">
+        <Avatar src={otherMembers[0]?.picture} name={title} size="sm" />
+        <h1 id="conversation-title" className="conversation__title">
+          {title}
+        </h1>
+        {members.length > 2 && (
+          <span className="conversation__meta">· {members.length} members</span>
+        )}
+      </header>
+      <MessageList
+        messages={conversation.messages}
+        currentUserId={currentUserId}
+      />
+      <MessageComposer
+        recipientNames={otherNames}
+        disabledReason={disabledReason}
+        onSend={sendMessage}
+      />
+    </section>
   );
 }
 
