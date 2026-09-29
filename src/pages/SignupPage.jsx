@@ -2,23 +2,53 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
 import { apiFetch } from "../lib/api";
+import Alert from "../components/ui/Alert";
+import Spinner from "../components/ui/Spinner";
+
+const FIELDS = [
+  { id: "name", label: "Name", type: "text", autoComplete: "name" },
+  { id: "email", label: "Email", type: "email", autoComplete: "email" },
+  {
+    id: "username",
+    label: "Username",
+    type: "text",
+    autoComplete: "username",
+    hint: "4–20 characters: letters, numbers and spaces",
+  },
+  {
+    id: "password",
+    label: "Password",
+    type: "password",
+    autoComplete: "new-password",
+    hint: "6–20 characters",
+  },
+  {
+    id: "confirmPass",
+    label: "Confirm password",
+    type: "password",
+    autoComplete: "new-password",
+  },
+];
+
+const EMPTY_FORM = Object.fromEntries(FIELDS.map((field) => [field.id, ""]));
 
 function SignupPage() {
   const { login } = useAuth();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPass, setConfirmPass] = useState("");
+  const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const updateField = (e) => {
+    const { id, value } = e.target;
+    setForm((current) => ({ ...current, [id]: value }));
+  };
 
   // GuestOnly redirects away once login() stores the token.
   const handleSignup = async (e) => {
     e.preventDefault();
     if (submitting) return;
 
-    if (password !== confirmPass) {
+    if (form.password !== form.confirmPass) {
       setError("Passwords do not match");
       return;
     }
@@ -26,10 +56,7 @@ function SignupPage() {
     setError("");
     setSubmitting(true);
     try {
-      const data = await apiFetch("/signup", {
-        method: "POST",
-        body: { name, email, username, password, confirmPass },
-      });
+      const data = await apiFetch("/signup", { method: "POST", body: form });
       login(data.token);
     } catch (err) {
       setError(err.detail ?? "Something went wrong. Please try again");
@@ -38,78 +65,48 @@ function SignupPage() {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h2 className="auth-title">Sign Up</h2>
-        <p className="auth-subtitle">
-          Already have an account? <Link to="/login">Log In</Link>
+    <div className="auth">
+      <section className="auth__card card" aria-labelledby="signup-title">
+        <h1 id="signup-title" className="auth__title">
+          Create an account
+        </h1>
+        <p className="auth__subtitle">
+          Already have an account? <Link to="/login">Log in</Link>
         </p>
-        {error && (
-          <p className="auth-error" role="alert">
-            {error}
-          </p>
-        )}
-        <form onSubmit={handleSignup} className="auth-form">
-          <div className="auth-field">
-            <label htmlFor="name">Name</label>
-            <input
-              type="text"
-              id="name"
-              autoComplete="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-          <div className="auth-field">
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="auth-field">
-            <label htmlFor="username">Username</label>
-            <input
-              type="text"
-              id="username"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
-          <div className="auth-field">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <div className="auth-field">
-            <label htmlFor="confirmPass">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPass"
-              autoComplete="new-password"
-              value={confirmPass}
-              onChange={(e) => setConfirmPass(e.target.value)}
-              required
-            />
-          </div>
-          <button type="submit" className="auth-btn" disabled={submitting}>
-            {submitting ? "Creating account…" : "Sign Up"}
+        <form onSubmit={handleSignup} className="auth__form">
+          {error && <Alert>{error}</Alert>}
+          {FIELDS.map((field) => (
+            <div key={field.id} className="field">
+              <label htmlFor={field.id} className="field__label">
+                {field.label}
+              </label>
+              <input
+                id={field.id}
+                type={field.type}
+                className="input"
+                autoComplete={field.autoComplete}
+                value={form[field.id]}
+                onChange={updateField}
+                aria-describedby={field.hint ? `${field.id}-hint` : undefined}
+                required
+              />
+              {field.hint && (
+                <p id={`${field.id}-hint`} className="field__hint">
+                  {field.hint}
+                </p>
+              )}
+            </div>
+          ))}
+          <button
+            type="submit"
+            className="button button--primary button--block auth__submit"
+            disabled={submitting}
+          >
+            {submitting && <Spinner />}
+            {submitting ? "Creating account…" : "Sign up"}
           </button>
         </form>
-      </div>
+      </section>
     </div>
   );
 }

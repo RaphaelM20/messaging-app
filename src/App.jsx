@@ -15,58 +15,60 @@ function App() {
   return (
     <>
       <Navbar />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route
-          path="/login"
-          element={
-            <GuestOnly>
-              <LoginPage />
-            </GuestOnly>
-          }
-        />
-        <Route
-          path="/signup"
-          element={
-            <GuestOnly>
-              <SignupPage />
-            </GuestOnly>
-          }
-        />
-        <Route
-          path="/friends"
-          element={
-            <RequireAuth>
-              <FriendsPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/users/search"
-          element={
-            <RequireAuth>
-              <AddFriendPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/conversations/:conversationId"
-          element={
-            <RequireAuth>
-              <ConversationPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/users/me"
-          element={
-            <RequireAuth>
-              <ProfilePage />
-            </RequireAuth>
-          }
-        />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+      <main id="main" tabIndex={-1}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route
+            path="/login"
+            element={
+              <GuestOnly>
+                <LoginPage />
+              </GuestOnly>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <GuestOnly>
+                <SignupPage />
+              </GuestOnly>
+            }
+          />
+          <Route
+            path="/friends"
+            element={
+              <RequireAuth>
+                <FriendsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/users/search"
+            element={
+              <RequireAuth>
+                <AddFriendPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/conversations/:conversationId"
+            element={
+              <RequireAuth>
+                <ConversationPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/users/me"
+            element={
+              <RequireAuth>
+                <ProfilePage />
+              </RequireAuth>
+            }
+          />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </main>
     </>
   );
 }

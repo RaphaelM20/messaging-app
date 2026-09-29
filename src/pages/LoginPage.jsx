@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
 import { apiFetch } from "../lib/api";
+import Alert from "../components/ui/Alert";
+import Spinner from "../components/ui/Spinner";
 
 const GUEST_CREDENTIALS = { username: "guest", password: "guest123" };
 
@@ -42,53 +44,64 @@ function LoginPage() {
   const handleGuestLogin = () => authenticate(GUEST_CREDENTIALS, "guest");
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h2 className="auth-title">Welcome Back</h2>
-        <p className="auth-subtitle">
-          Don't have an account? <Link to="/signup">Sign Up</Link>
+    <div className="auth">
+      <section className="auth__card card" aria-labelledby="login-title">
+        <h1 id="login-title" className="auth__title">
+          Welcome back
+        </h1>
+        <p className="auth__subtitle">
+          Don't have an account? <Link to="/signup">Sign up</Link>
         </p>
-        {error && (
-          <p className="auth-error" role="alert">
-            {error}
-          </p>
-        )}
-        <form onSubmit={handleLogin} className="auth-form">
-          <div className="auth-field">
-            <label htmlFor="username">Username</label>
+        <form onSubmit={handleLogin} className="auth__form">
+          {error && <Alert>{error}</Alert>}
+          <div className="field">
+            <label htmlFor="username" className="field__label">
+              Username
+            </label>
             <input
               type="text"
               id="username"
+              className="input"
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
             />
           </div>
-          <div className="auth-field">
-            <label htmlFor="password">Password</label>
+          <div className="field">
+            <label htmlFor="password" className="field__label">
+              Password
+            </label>
             <input
               type="password"
               id="password"
+              className="input"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
-          <button type="submit" className="auth-btn" disabled={!!pending}>
-            {pending === "credentials" ? "Logging in…" : "Login"}
+          <button
+            type="submit"
+            className="button button--primary button--block auth__submit"
+            disabled={!!pending}
+          >
+            {pending === "credentials" && <Spinner />}
+            {pending === "credentials" ? "Logging in…" : "Log in"}
           </button>
         </form>
+        <p className="divider">or</p>
         <button
           type="button"
-          className="auth-btn-guest"
+          className="button button--secondary button--block"
           onClick={handleGuestLogin}
           disabled={!!pending}
         >
-          {pending === "guest" ? "Signing in as guest…" : "Continue as Guest"}
+          {pending === "guest" && <Spinner />}
+          {pending === "guest" ? "Signing in as guest…" : "Continue as guest"}
         </button>
-      </div>
+      </section>
     </div>
   );
 }
