@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/auth-context";
+import { GUEST_USERNAME } from "../lib/auth";
 import EditProfileDialog from "../components/profile/EditProfileDialog";
 import Alert from "../components/ui/Alert";
 import Avatar from "../components/ui/Avatar";
@@ -39,13 +40,20 @@ function ProfilePage() {
           {user.bio || <span className="text-subtle">No bio yet.</span>}
         </p>
         <div className="profile-card__actions">
-          <button
-            type="button"
-            className="button button--secondary"
-            onClick={() => setEditing(true)}
-          >
-            Edit profile
-          </button>
+          {user.username === GUEST_USERNAME ? (
+            <p className="text-subtle">
+              The shared guest profile can't be edited. Log out and sign up to
+              create your own.
+            </p>
+          ) : (
+            <button
+              type="button"
+              className="button button--secondary"
+              onClick={() => setEditing(true)}
+            >
+              Edit profile
+            </button>
+          )}
         </div>
       </section>
     );
