@@ -2,6 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
 import { apiFetch, isAbortError } from "../lib/api";
+import FriendList from "../components/friends/FriendList";
+import PendingRequests from "../components/friends/PendingRequests";
+import Alert from "../components/ui/Alert";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
+import SkeletonList from "../components/ui/SkeletonList";
 
 function FriendsPage() {
   const { currentUserId } = useAuth();
@@ -15,6 +20,8 @@ function FriendsPage() {
   const [actionError, setActionError] = useState("");
   // Friendship ID with a request in flight, to block repeat clicks.
   const [busyId, setBusyId] = useState(null);
+  // { friendshipId, name } awaiting confirmation.
+  const [pendingRemoval, setPendingRemoval] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -61,7 +68,7 @@ function FriendsPage() {
       "Couldn't accept the request. Please try again.",
     );
 
-  // Deleting a friendship covers removing a friend, denying a received
+  // Deleting a friendship covers removing a friend, declining a received
   // request and cancelling a sent one.
   const deleteFriendship = (friendshipId, errorMessage) =>
     runAction(
@@ -76,9 +83,12 @@ function FriendsPage() {
       errorMessage,
     );
 
-  const removeFriend = (friendshipId, name) => {
-    if (!window.confirm(`Remove ${name} from your friends?`)) return;
-    deleteFriendship(friendshipId, "Couldn't remove friend. Please try again.");
+  const confirmRemoval = () => {
+    deleteFriendship(
+      pendingRemoval.friendshipId,
+      "Couldn't remove friend. Please try again.",
+    );
+    setPendingRemoval(null);
   };
 
   const startConversation = (friendshipId, friendUserId) =>
@@ -94,117 +104,77 @@ function FriendsPage() {
       "Couldn't open the conversation. Please try again.",
     );
 
-  if (status === "loading") {
-    return <div className="container">Loading friends…</div>;
-  }
-
-  if (status === "error") {
+  const renderContent = () => {
+    if (status === "loading") {
+      return <SkeletonList label="Loading friends" />;
+    }
+    if (status === "error") {
+      return (
+        <Alert>Couldn't load your friends. Please refresh to try again.</Alert>
+      );
+    }
+    if (tab === "all") {
+      return (
+        <FriendList
+          friends={friends}
+          currentUserId={currentUserId}
+          busyId={busyId}
+          onMessage={startConversation}
+          onRemove={(friendshipId, name) =>
+            setPendingRemoval({ friendshipId, name })
+          }
+        />
+      );
+    }
     return (
-      <div className="container">
-        <p className="auth-error" role="alert">
-          Couldn't load your friends. Please refresh to try again.
-        </p>
-      </div>
+      <PendingRequests
+        received={receivedRequests}
+        sent={sentRequests}
+        busyId={busyId}
+        onAccept={acceptRequest}
+        onDecline={(id) =>
+          deleteFriendship(
+            id,
+            "Couldn't decline the request. Please try again.",
+          )
+        }
+        onCancel={(id) =>
+          deleteFriendship(id, "Couldn't cancel the request. Please try again.")
+        }
+      />
     );
-  }
+  };
+
+  const count =
+    tab === "all"
+      ? friends.length
+      : receivedRequests.length + sentRequests.length;
 
   return (
-    <div className="container">
-      {actionError && (
-        <p className="auth-error" role="alert">
-          {actionError}
-        </p>
-      )}
-
-      {tab === "all" &&
-        friends.map((friend) => {
-          const yourFriend =
-            friend.user.id === currentUserId ? friend.buddy : friend.user;
-          const busy = busyId === friend.id;
-
-          return (
-            <div key={friend.id} className="friend-card">
-              <img src={yourFriend.picture} alt="" />
-              <p>{yourFriend.name}</p>
-              <div className="request-actions">
-                <button
-                  onClick={() => startConversation(friend.id, yourFriend.id)}
-                  disabled={busy}
-                  aria-label={`Message ${yourFriend.name}`}
-                >
-                  💬
-                </button>
-                <button
-                  onClick={() => removeFriend(friend.id, yourFriend.name)}
-                  disabled={busy}
-                  aria-label={`Remove ${yourFriend.name}`}
-                >
-                  ✗
-                </button>
-              </div>
-            </div>
-          );
-        })}
-
-      {tab === "pending" && (
-        <>
-          <p className="received-subtitle">
-            Received-{receivedRequests.length}
-          </p>
-          {receivedRequests.map((received) => {
-            const busy = busyId === received.id;
-            return (
-              <div key={received.id} className="received-card">
-                <img src={received.user.picture} alt="" />
-                <p>{received.user.name}</p>
-                <p>{received.user.username}</p>
-                <div className="request-actions">
-                  <button
-                    onClick={() => acceptRequest(received.id)}
-                    disabled={busy}
-                    aria-label={`Accept ${received.user.name}`}
-                  >
-                    ✓
-                  </button>
-                  <button
-                    onClick={() =>
-                      deleteFriendship(
-                        received.id,
-                        "Couldn't decline the request. Please try again.",
-                      )
-                    }
-                    disabled={busy}
-                    aria-label={`Decline ${received.user.name}`}
-                  >
-                    ✗
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-
-          <p className="sent-subtitle">Sent-{sentRequests.length}</p>
-          {sentRequests.map((sent) => (
-            <div key={sent.id} className="sent-card">
-              <img src={sent.buddy.picture} alt="" />
-              <p>{sent.buddy.name}</p>
-              <p>{sent.buddy.username}</p>
-              <button
-                onClick={() =>
-                  deleteFriendship(
-                    sent.id,
-                    "Couldn't cancel the request. Please try again.",
-                  )
-                }
-                disabled={busyId === sent.id}
-                aria-label={`Cancel request to ${sent.buddy.name}`}
-              >
-                ✗
-              </button>
-            </div>
-          ))}
-        </>
-      )}
+    <div className="page">
+      <div className="page__header">
+        <h1 className="page__title">
+          {tab === "all" ? "All friends" : "Pending requests"}
+          {status === "ready" && (
+            <>
+              {" "}
+              <span className="count-badge">{count}</span>
+            </>
+          )}
+        </h1>
+      </div>
+      {actionError && <Alert>{actionError}</Alert>}
+      {renderContent()}
+      <ConfirmDialog
+        open={pendingRemoval !== null}
+        title="Remove friend"
+        confirmLabel="Remove friend"
+        onConfirm={confirmRemoval}
+        onCancel={() => setPendingRemoval(null)}
+      >
+        Are you sure you want to remove <strong>{pendingRemoval?.name}</strong>{" "}
+        from your friends?
+      </ConfirmDialog>
     </div>
   );
 }

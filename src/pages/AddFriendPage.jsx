@@ -1,6 +1,11 @@
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { apiFetch, isAbortError } from "../lib/api";
+import PersonRow from "../components/PersonRow";
+import Alert from "../components/ui/Alert";
+import EmptyState from "../components/ui/EmptyState";
+import Icon from "../components/ui/Icon";
+import Spinner from "../components/ui/Spinner";
 
 // `friendsOf` holds requests the current user sent to this person;
 // `friends` holds requests this person sent to the current user.
@@ -13,10 +18,45 @@ function getRelationship(result, sentIds) {
   return "none";
 }
 
+function RelationshipAction({ relationship, sending, disabled, onAdd }) {
+  if (relationship === "incoming") {
+    return (
+      <Link
+        to="/friends?tab=pending"
+        className="button button--secondary button--sm"
+      >
+        View request
+      </Link>
+    );
+  }
+  if (relationship === "friends" || relationship === "sent") {
+    return (
+      <button
+        type="button"
+        className="button button--secondary button--sm"
+        disabled
+      >
+        {relationship === "friends" ? "Friends" : "Request sent"}
+      </button>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="button button--primary button--sm"
+      onClick={onAdd}
+      disabled={disabled}
+    >
+      {sending && <Spinner />}
+      {sending ? "Sending…" : "Add friend"}
+    </button>
+  );
+}
+
 function AddFriendPage() {
-  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState(null);
+  const [searchedTerm, setSearchedTerm] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [sentIds, setSentIds] = useState([]);
@@ -44,6 +84,7 @@ function AddFriendPage() {
         { signal: controller.signal },
       );
       setResults(data);
+      setSearchedTerm(term);
     } catch (err) {
       if (isAbortError(err)) return;
       setSearchError("Search failed. Please try again.");
@@ -51,14 +92,14 @@ function AddFriendPage() {
     setSearching(false);
   };
 
-  const sendFriendRequest = async (id) => {
+  const sendFriendRequest = async (id, name) => {
     if (sendingId !== null) return;
     setSendingId(id);
     setNotice(null);
     try {
       await apiFetch("/friends", { method: "POST", body: { buddyId: id } });
       setSentIds((ids) => [...ids, id]);
-      setNotice({ type: "success", text: "Friend request sent!" });
+      setNotice({ type: "success", text: `Friend request sent to ${name}.` });
     } catch {
       setNotice({
         type: "error",
@@ -70,66 +111,70 @@ function AddFriendPage() {
   };
 
   return (
-    <div className="search-container">
-      <form onSubmit={handleSearch}>
-        <label htmlFor="search-input">Add Friend</label>
+    <div className="page">
+      <div className="page__header">
+        <div>
+          <h1 className="page__title">Add Friend</h1>
+          <p className="page__subtitle">
+            Search by username to send a friend request.
+          </p>
+        </div>
+      </div>
+
+      <form role="search" className="search-form" onSubmit={handleSearch}>
+        <label htmlFor="friend-search" className="visually-hidden">
+          Username
+        </label>
         <input
-          id="search-input"
+          id="friend-search"
           type="search"
+          className={`input${notice?.type === "success" ? " input--success" : ""}`}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Enter a username"
-          className={notice?.type === "success" ? "input-success" : ""}
+          autoComplete="off"
         />
-        <button type="submit" disabled={searching || !query.trim()}>
-          {searching ? "Searching…" : "Search"}
+        <button
+          type="submit"
+          className="button button--primary"
+          disabled={searching || !query.trim()}
+        >
+          {searching ? <Spinner /> : <Icon name="search" />}
+          Search
         </button>
       </form>
-      {notice?.type === "success" && (
-        <p className="success-msg" role="status">
-          {notice.text}
-        </p>
-      )}
-      {notice?.type === "error" && (
-        <p className="auth-error" role="alert">
-          {notice.text}
-        </p>
-      )}
-      {searchError && (
-        <p className="auth-error" role="alert">
-          {searchError}
-        </p>
-      )}
-      {results?.length === 0 && <p>No users found.</p>}
 
-      {results?.map((result) => {
-        const relationship = getRelationship(result, sentIds);
-        return (
-          <div key={result.id} className="result-card">
-            <img src={result.picture} alt="" />
-            <p>{result.name}</p>
-            <p>{result.username}</p>
-            {relationship === "incoming" ? (
-              <button onClick={() => navigate("/friends?tab=pending")}>
-                View Request
-              </button>
-            ) : (
-              <button
-                onClick={() => sendFriendRequest(result.id)}
-                disabled={relationship !== "none" || sendingId !== null}
-              >
-                {relationship === "friends"
-                  ? "Friends"
-                  : relationship === "sent"
-                    ? "Sent!"
-                    : sendingId === result.id
-                      ? "Sending…"
-                      : "Add Friend"}
-              </button>
-            )}
-          </div>
-        );
-      })}
+      {(notice || searchError) && (
+        <div className="search-feedback">
+          {notice && <Alert variant={notice.type}>{notice.text}</Alert>}
+          {searchError && <Alert>{searchError}</Alert>}
+        </div>
+      )}
+
+      {results?.length === 0 && (
+        <EmptyState icon="search" title="No users found">
+          Nobody matches “{searchedTerm}”. Check the spelling and try again.
+        </EmptyState>
+      )}
+
+      {results?.length > 0 && (
+        <ul className="row-list" aria-label="Search results">
+          {results.map((result) => (
+            <PersonRow
+              key={result.id}
+              person={result}
+              actions={
+                <RelationshipAction
+                  relationship={getRelationship(result, sentIds)}
+                  sending={sendingId === result.id}
+                  disabled={sendingId !== null}
+                  onAdd={() => sendFriendRequest(result.id, result.name)}
+                />
+              }
+            />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
