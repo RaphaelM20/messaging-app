@@ -25,6 +25,9 @@ const PATHS = {
     </>
   ),
   send: <path d="M22 2 11 13M22 2l-7 20-4-9-9-4z" />,
+  trash: (
+    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" />
+  ),
   userPlus: (
     <>
       <circle cx="9" cy="7" r="4" />

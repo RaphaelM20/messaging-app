@@ -2,11 +2,13 @@ import { useLayoutEffect, useRef } from "react";
 import { formatTime } from "../../lib/formatTime";
 import Avatar from "../ui/Avatar";
 import EmptyState from "../ui/EmptyState";
+import IconButton from "../ui/IconButton";
 
 // How close to the bottom (px) still counts as "following" the chat.
 const STICKY_THRESHOLD_PX = 80;
 
-function MessageList({ messages, currentUserId }) {
+// `onDelete(message)` is offered on the current user's own messages.
+function MessageList({ messages, currentUserId, deletingId, onDelete }) {
   const logRef = useRef(null);
   const followingRef = useRef(true);
   const lastMessageIdRef = useRef(null);
@@ -66,6 +68,17 @@ function MessageList({ messages, currentUserId }) {
                 </div>
                 <p className="message__content">{message.content}</p>
               </div>
+              {message.sender?.id === currentUserId && (
+                <div className="message__actions">
+                  <IconButton
+                    icon="trash"
+                    label="Delete message"
+                    variant="danger"
+                    onClick={() => onDelete(message)}
+                    disabled={deletingId === message.id}
+                  />
+                </div>
+              )}
             </li>
           ))}
         </ol>

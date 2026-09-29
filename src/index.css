@@ -1175,8 +1175,41 @@ main:focus {
   transition: background-color var(--transition-fast);
 }
 
+.message {
+  position: relative;
+}
+
 .message:hover {
   background: var(--color-bg-hover);
+}
+
+/* Revealed on hover or keyboard focus; always shown on touch screens. */
+.message__actions {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-4);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.message:hover .message__actions,
+.message:focus-within .message__actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .message__actions {
+    position: static;
+    align-self: center;
+    opacity: 1;
+  }
+}
+
+.message__actions .icon-button {
+  width: 32px;
+  height: 32px;
+  background: var(--color-bg-panel);
+  box-shadow: var(--shadow-md);
 }
 
 .message__body {
@@ -1205,6 +1238,26 @@ main:focus {
   color: var(--color-text);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+.conversation__notice {
+  padding: 0 var(--space-4) var(--space-2);
+}
+
+.confirm-quote {
+  display: -webkit-box;
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  overflow: hidden;
+  border-left: 3px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-deep);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+  quotes: none;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
 }
 
 .composer {

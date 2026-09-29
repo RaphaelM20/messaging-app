@@ -90,10 +90,9 @@ function EditProfileDialog({ user, onClose }) {
         bio: updated.bio,
       });
       onClose();
-    } catch {
-      setError(
-        "Couldn't save your profile. That username may already be taken.",
-      );
+    } catch (err) {
+      // e.g. "Username already in use" or a validation message.
+      setError(err.detail ?? "Couldn't save your profile. Please try again.");
       setSaving(false);
     }
   };

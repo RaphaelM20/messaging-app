@@ -1,69 +1,26 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
+import { useConversation } from "../hooks/useConversation";
 import { apiFetch, isAbortError } from "../lib/api";
 import MessageComposer from "../components/conversation/MessageComposer";
 import MessageList from "../components/conversation/MessageList";
 import Alert from "../components/ui/Alert";
 import Avatar from "../components/ui/Avatar";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 import EmptyState from "../components/ui/EmptyState";
 import SkeletonList from "../components/ui/SkeletonList";
 
-// The API has no push channel, so new messages are picked up by polling.
-const POLL_INTERVAL_MS = 4000;
-
 function Conversation({ conversationId }) {
   const { currentUserId } = useAuth();
-  const [conversation, setConversation] = useState(null);
-  // "loading" | "ready" | "not-found" | "error"
-  const [status, setStatus] = useState("loading");
+  const { conversation, status, sendMessage, deleteMessage } =
+    useConversation(conversationId);
   // null until known, so the input never flashes enabled for an ex-friend.
   const [isFriends, setIsFriends] = useState(null);
-  const latestRequestId = useRef(0);
-
-  const refresh = useCallback(
-    async (signal) => {
-      const requestId = ++latestRequestId.current;
-      const data = await apiFetch(`/conversations/${conversationId}`, {
-        signal,
-      });
-      // A newer request (poll or post-send refresh) owns the state now.
-      if (requestId !== latestRequestId.current) return;
-      if (data) {
-        setConversation(data);
-        setStatus("ready");
-      } else {
-        setStatus("not-found");
-      }
-    },
-    [conversationId],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let timeoutId;
-
-    const poll = async () => {
-      if (!document.hidden) {
-        try {
-          await refresh(controller.signal);
-        } catch (err) {
-          if (isAbortError(err)) return;
-          // Keep showing what we have if a background poll fails.
-          setStatus((current) => (current === "ready" ? current : "error"));
-        }
-      }
-      if (!controller.signal.aborted) {
-        timeoutId = setTimeout(poll, POLL_INTERVAL_MS);
-      }
-    };
-
-    poll();
-    return () => {
-      controller.abort();
-      clearTimeout(timeoutId);
-    };
-  }, [refresh]);
+  // Message awaiting delete confirmation, and the one being deleted.
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [actionError, setActionError] = useState("");
 
   const members = conversation?.members ?? [];
   const otherMembers = members.filter((m) => m.id !== currentUserId);
@@ -93,13 +50,20 @@ function Conversation({ conversationId }) {
     return () => controller.abort();
   }, [directPartnerId]);
 
-  const sendMessage = async (content) => {
-    await apiFetch(`/conversations/${conversationId}/messages`, {
-      method: "POST",
-      body: { content },
-    });
-    // The next poll will retry if this refresh fails.
-    refresh().catch(() => {});
+  const confirmDelete = async () => {
+    const { id } = pendingDelete;
+    setPendingDelete(null);
+    setDeletingId(id);
+    setActionError("");
+    try {
+      await deleteMessage(id);
+    } catch (err) {
+      setActionError(
+        err.detail ?? "Couldn't delete the message. Please try again.",
+      );
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (status === "loading") {
@@ -161,12 +125,32 @@ function Conversation({ conversationId }) {
       <MessageList
         messages={conversation.messages}
         currentUserId={currentUserId}
+        deletingId={deletingId}
+        onDelete={setPendingDelete}
       />
+      {actionError && (
+        <div className="conversation__notice">
+          <Alert>{actionError}</Alert>
+        </div>
+      )}
       <MessageComposer
         recipientNames={otherNames}
         disabledReason={disabledReason}
         onSend={sendMessage}
       />
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete message"
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      >
+        This will permanently delete your message for everyone in the
+        conversation.
+        {pendingDelete && (
+          <q className="confirm-quote">{pendingDelete.content}</q>
+        )}
+      </ConfirmDialog>
     </section>
   );
 }

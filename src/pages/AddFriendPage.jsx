@@ -100,10 +100,11 @@ function AddFriendPage() {
       await apiFetch("/friends", { method: "POST", body: { buddyId: id } });
       setSentIds((ids) => [...ids, id]);
       setNotice({ type: "success", text: `Friend request sent to ${name}.` });
-    } catch {
+    } catch (err) {
       setNotice({
         type: "error",
-        text: "Couldn't send the friend request. Please try again.",
+        text:
+          err.detail ?? "Couldn't send the friend request. Please try again.",
       });
     } finally {
       setSendingId(null);
