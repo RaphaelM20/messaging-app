@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
 
-function Navbar({ setFilter }) {
+function Navbar() {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
 
@@ -19,20 +19,8 @@ function Navbar({ setFilter }) {
       {isAuthenticated ? (
         <>
           <h2>Friends</h2>
-          <button
-            onClick={() => {
-              setFilter("all");
-              navigate("/friends");
-            }}
-          >
-            All
-          </button>
-          <button
-            onClick={() => {
-              setFilter("pending");
-              navigate("/friends");
-            }}
-          >
+          <button onClick={() => navigate("/friends")}>All</button>
+          <button onClick={() => navigate("/friends?tab=pending")}>
             Pending
           </button>
           <Link to="/users/search" className="nav-link">

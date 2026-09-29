@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
@@ -13,11 +12,9 @@ import ProfilePage from "./pages/ProfilePage";
 import NotFoundPage from "./pages/NotFoundPage";
 
 function App() {
-  const [filter, setFilter] = useState("all");
-
   return (
     <>
-      <Navbar setFilter={setFilter} />
+      <Navbar />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route
@@ -40,7 +37,7 @@ function App() {
           path="/friends"
           element={
             <RequireAuth>
-              <FriendsPage filter={filter} />
+              <FriendsPage />
             </RequireAuth>
           }
         />
