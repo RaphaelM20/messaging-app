@@ -1,55 +1,45 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/auth-context";
+import { apiFetch } from "../lib/api";
 
-function LoginPage({ setToken }) {
-  const navigate = useNavigate();
+const GUEST_CREDENTIALS = { username: "guest", password: "guest123" };
+
+function LoginPage() {
+  const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  // Which login is in flight: "credentials", "guest" or null.
+  const [pending, setPending] = useState(null);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    const loginUrl = `${import.meta.env.VITE_API_URL}/login`;
-    const credentials = { username, password };
-
+  // GuestOnly redirects away once login() stores the token.
+  const authenticate = async (credentials, kind) => {
+    if (pending) return;
+    setError("");
+    setPending(kind);
     try {
-      const response = await fetch(loginUrl, {
+      const data = await apiFetch("/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(credentials),
+        body: credentials,
       });
-
-      if (!response.ok) {
-        throw new Error("Invalid email or password");
-      }
-
-      const data = await response.json();
-      localStorage.setItem("authToken", data.token);
-      setToken(data.token);
-      navigate("/");
+      login(data.token);
     } catch (err) {
-      setError(err.message || "Something went wrong. Please try again");
+      setError(
+        err.status === 401
+          ? "Invalid username or password"
+          : "Something went wrong. Please try again",
+      );
+      setPending(null);
     }
   };
 
-  const handleGuestLogin = async () => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ username: "guest", password: "guest123" }),
-    });
-    const data = await response.json();
-    console.log("token:", data.token);
-    localStorage.setItem("authToken", data.token);
-    setToken(data.token);
-    navigate("/");
+  const handleLogin = (e) => {
+    e.preventDefault();
+    authenticate({ username: username.trim(), password }, "credentials");
   };
+
+  const handleGuestLogin = () => authenticate(GUEST_CREDENTIALS, "guest");
 
   return (
     <div className="auth-container">
@@ -58,13 +48,18 @@ function LoginPage({ setToken }) {
         <p className="auth-subtitle">
           Don't have an account? <Link to="/signup">Sign Up</Link>
         </p>
-        {error && <p className="auth-error">{error}</p>}
+        {error && (
+          <p className="auth-error" role="alert">
+            {error}
+          </p>
+        )}
         <form onSubmit={handleLogin} className="auth-form">
           <div className="auth-field">
             <label htmlFor="username">Username</label>
             <input
               type="text"
               id="username"
+              autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -75,21 +70,23 @@ function LoginPage({ setToken }) {
             <input
               type="password"
               id="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
-          <button type="submit" className="auth-btn">
-            Login
+          <button type="submit" className="auth-btn" disabled={!!pending}>
+            {pending === "credentials" ? "Logging in…" : "Login"}
           </button>
         </form>
         <button
           type="button"
           className="auth-btn-guest"
           onClick={handleGuestLogin}
+          disabled={!!pending}
         >
-          Continue as Guest
+          {pending === "guest" ? "Signing in as guest…" : "Continue as Guest"}
         </button>
       </div>
     </div>

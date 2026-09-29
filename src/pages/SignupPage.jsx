@@ -1,46 +1,39 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/auth-context";
+import { apiFetch } from "../lib/api";
 
-function SignupPage({ setToken }) {
-  const navigate = useNavigate();
+function SignupPage() {
+  const { login } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
+  // GuestOnly redirects away once login() stores the token.
   const handleSignup = async (e) => {
     e.preventDefault();
+    if (submitting) return;
 
-    const signupUrl = `${import.meta.env.VITE_API_URL}/signup`;
-    const credentials = { name, email, username, password, confirmPass };
+    if (password !== confirmPass) {
+      setError("Passwords do not match");
+      return;
+    }
 
+    setError("");
+    setSubmitting(true);
     try {
-      const response = await fetch(signupUrl, {
+      const data = await apiFetch("/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(credentials),
+        body: { name, email, username, password, confirmPass },
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.errors && errorData.errors.length > 0) {
-          throw new Error(errorData.errors[0].message);
-        }
-        throw new Error("Something went wrong");
-      }
-
-      const data = await response.json();
-      localStorage.setItem("authToken", data.token);
-      setToken(data.token);
-      navigate("/");
+      login(data.token);
     } catch (err) {
-      setError(err.message || "Something went wrong. Please try again");
+      setError(err.detail ?? "Something went wrong. Please try again");
+      setSubmitting(false);
     }
   };
 
@@ -51,13 +44,18 @@ function SignupPage({ setToken }) {
         <p className="auth-subtitle">
           Already have an account? <Link to="/login">Log In</Link>
         </p>
-        {error && <p className="auth-error">{error}</p>}
+        {error && (
+          <p className="auth-error" role="alert">
+            {error}
+          </p>
+        )}
         <form onSubmit={handleSignup} className="auth-form">
           <div className="auth-field">
             <label htmlFor="name">Name</label>
             <input
               type="text"
               id="name"
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -68,6 +66,7 @@ function SignupPage({ setToken }) {
             <input
               type="email"
               id="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -78,6 +77,7 @@ function SignupPage({ setToken }) {
             <input
               type="text"
               id="username"
+              autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -88,6 +88,7 @@ function SignupPage({ setToken }) {
             <input
               type="password"
               id="password"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -98,13 +99,14 @@ function SignupPage({ setToken }) {
             <input
               type="password"
               id="confirmPass"
+              autoComplete="new-password"
               value={confirmPass}
               onChange={(e) => setConfirmPass(e.target.value)}
               required
             />
           </div>
-          <button type="submit" className="auth-btn">
-            Sign Up
+          <button type="submit" className="auth-btn" disabled={submitting}>
+            {submitting ? "Creating account…" : "Sign Up"}
           </button>
         </form>
       </div>

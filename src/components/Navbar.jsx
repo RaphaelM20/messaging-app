@@ -1,26 +1,14 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/auth-context";
 
-function Navbar({ token, setToken, setFilter }) {
+function Navbar({ setFilter }) {
   const navigate = useNavigate();
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    setToken(null);
-  };
-  const [currentUser, setCurrentUser] = useState(null);
+  const { isAuthenticated, user, logout } = useAuth();
 
-  useEffect(() => {
-    if (token) {
-      fetch(`${import.meta.env.VITE_API_URL}/user/me`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      })
-        .then((res) => res.json())
-        .then((data) => setCurrentUser(data));
-    }
-  }, [token]);
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <nav className="navbar">
@@ -28,7 +16,7 @@ function Navbar({ token, setToken, setFilter }) {
         Messaging App
       </Link>
       <div className="nav-links"></div>
-      {token ? (
+      {isAuthenticated ? (
         <>
           <h2>Friends</h2>
           <button
@@ -50,8 +38,10 @@ function Navbar({ token, setToken, setFilter }) {
           <Link to="/users/search" className="nav-link">
             Add Friend
           </Link>
-          <Link to="/users/me">
-            <img src={currentUser?.picture} className="nav-avatar" />
+          <Link to="/users/me" aria-label="Your profile">
+            {user?.picture && (
+              <img src={user.picture} alt="" className="nav-avatar" />
+            )}
           </Link>
           <button onClick={handleLogout} className="nav-logout">
             Logout
