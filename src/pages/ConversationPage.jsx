@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
 import { useConversation } from "../hooks/useConversation";
 import { apiFetch, isAbortError } from "../lib/api";
+import { GUEST_USERNAME } from "../lib/auth";
 import MessageComposer from "../components/conversation/MessageComposer";
 import MessageList from "../components/conversation/MessageList";
 import Alert from "../components/ui/Alert";
@@ -12,7 +13,9 @@ import EmptyState from "../components/ui/EmptyState";
 import SkeletonList from "../components/ui/SkeletonList";
 
 function Conversation({ conversationId }) {
-  const { currentUserId } = useAuth();
+  const { currentUserId, user } = useAuth();
+  // The shared guest account can't delete, so demo chats stay intact.
+  const canDelete = Boolean(user) && user.username !== GUEST_USERNAME;
   const { conversation, status, sendMessage, deleteMessage } =
     useConversation(conversationId);
   // null until known, so the input never flashes enabled for an ex-friend.
@@ -126,7 +129,7 @@ function Conversation({ conversationId }) {
         messages={conversation.messages}
         currentUserId={currentUserId}
         deletingId={deletingId}
-        onDelete={setPendingDelete}
+        onDelete={canDelete ? setPendingDelete : undefined}
       />
       {actionError && (
         <div className="conversation__notice">

@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
 import { apiFetch } from "../lib/api";
+import { GUEST_USERNAME } from "../lib/auth";
 import Alert from "../components/ui/Alert";
 import Spinner from "../components/ui/Spinner";
 
-const GUEST_CREDENTIALS = { username: "guest", password: "guest123" };
+const GUEST_CREDENTIALS = { username: GUEST_USERNAME, password: "guest123" };
 
 function LoginPage() {
   const { login } = useAuth();

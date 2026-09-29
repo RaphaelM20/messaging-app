@@ -2,6 +2,9 @@ import { jwtDecode } from "jwt-decode";
 
 const TOKEN_KEY = "authToken";
 
+// Shared public demo account used by "Continue as guest".
+export const GUEST_USERNAME = "guest";
+
 export function getToken() {
   try {
     return localStorage.getItem(TOKEN_KEY);
